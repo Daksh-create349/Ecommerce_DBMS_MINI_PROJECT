@@ -1,389 +1,614 @@
--- ============================================================
--- E-COMMERCE PRODUCT & ORDER MANAGEMENT SYSTEM
--- PostgreSQL Database
--- ============================================================
+-- ==========================================
+-- E-Commerce Management System
+-- DBMS MINI PROJECT
+-- ==========================================
 
 
--- ============================================================
--- 1. CREATE CATEGORIES TABLE
--- ============================================================
+
+
+-- ==========================================
+-- TABLE CREATION
+-- ==========================================
+
+
+-- Categories Table
 
 CREATE TABLE categories (
+
     category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) UNIQUE NOT NULL
+
+    category_name VARCHAR(100)
+    NOT NULL UNIQUE,
+
+    description TEXT
+
 );
 
 
--- ============================================================
--- 2. CREATE PRODUCTS TABLE
--- ============================================================
 
-CREATE TABLE products (
-    product_id SERIAL PRIMARY KEY,
-    product_name VARCHAR(100) NOT NULL,
-    category_id INT REFERENCES categories(category_id),
-    price NUMERIC(10,2) NOT NULL,
-    specifications JSONB,
-    tags TEXT[]
-);
-
-
--- ============================================================
--- 3. CREATE CUSTOMERS TABLE
--- ============================================================
+-- Customers Table
 
 CREATE TABLE customers (
+
     customer_id SERIAL PRIMARY KEY,
-    customer_name VARCHAR(100) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
-    phone VARCHAR(15)
+
+    customer_name VARCHAR(100)
+    NOT NULL,
+
+    email VARCHAR(150)
+    NOT NULL UNIQUE,
+
+    phone VARCHAR(15),
+
+    address TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
 
 
--- ============================================================
--- 4. CREATE ORDERS TABLE
--- ============================================================
+
+-- Products Table
+
+CREATE TABLE products (
+
+    product_id SERIAL PRIMARY KEY,
+
+    category_id INT NOT NULL,
+
+    product_name VARCHAR(150)
+    NOT NULL,
+
+    sku VARCHAR(50)
+    NOT NULL UNIQUE,
+
+    price NUMERIC(10,2)
+    NOT NULL CHECK(price >= 0),
+
+    stock INT
+    NOT NULL CHECK(stock >= 0),
+
+    specifications JSONB,
+
+    tags TEXT[],
+
+
+    CONSTRAINT fk_product_category
+
+    FOREIGN KEY(category_id)
+
+    REFERENCES categories(category_id)
+
+);
+
+
+
+-- Orders Table
 
 CREATE TABLE orders (
+
     order_id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(customer_id),
-    order_date DATE NOT NULL,
-    delivery_date DATE,
-    order_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    customer_id INT NOT NULL,
+
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    delivery_date TIMESTAMP,
+
+
+    CONSTRAINT fk_order_customer
+
+    FOREIGN KEY(customer_id)
+
+    REFERENCES customers(customer_id),
+
+
+    CONSTRAINT chk_delivery_date
+
+    CHECK(
+        delivery_date IS NULL
+        OR delivery_date >= order_date
+    )
+
 );
 
 
--- ============================================================
--- 5. CREATE ORDER_ITEMS TABLE
--- Composite Primary Key: order_id + product_id
--- ============================================================
+
+-- Order Items Table
 
 CREATE TABLE order_items (
-    order_id INT REFERENCES orders(order_id),
-    product_id INT REFERENCES products(product_id),
-    quantity INT NOT NULL,
-    unit_price NUMERIC(10,2) NOT NULL,
-    PRIMARY KEY (order_id, product_id)
+
+    order_id INT NOT NULL,
+
+    product_id INT NOT NULL,
+
+    quantity INT NOT NULL
+    CHECK(quantity > 0),
+
+    unit_price NUMERIC(10,2) NOT NULL
+    CHECK(unit_price >= 0),
+
+
+    PRIMARY KEY(order_id, product_id),
+
+
+    CONSTRAINT fk_orderitem_order
+    FOREIGN KEY(order_id)
+    REFERENCES orders(order_id)
+    ON DELETE CASCADE,
+
+
+    CONSTRAINT fk_orderitem_product
+    FOREIGN KEY(product_id)
+    REFERENCES products(product_id)
+
 );
 
 
--- ============================================================
--- 6. INSERT CATEGORIES DATA
--- ============================================================
 
-INSERT INTO categories (category_name)
+-- ==========================================
+-- INSERT DATA
+-- ==========================================
+
+
+-- Categories
+
+INSERT INTO categories
+(category_name,description)
 VALUES
-('Laptops'),
-('Smartphones'),
-('Tablets'),
-('Smartwatches'),
-('Headphones'),
-('Cameras'),
-('Televisions'),
-('Monitors'),
-('Keyboards'),
-('Gaming Accessories');
+
+('Laptops','Portable computers'),
+
+('Smartphones','Mobile devices'),
+
+('Accessories','Electronic accessories'),
+
+('Cameras','Photography devices'),
+
+('Gaming','Gaming products');
 
 
--- ============================================================
--- 7. INSERT PRODUCTS DATA
--- JSONB is used for product specifications
--- Array is used for multiple product tags
--- ============================================================
 
-INSERT INTO products (product_name, category_id, price, specifications, tags)
+
+-- Customers
+
+INSERT INTO customers
+(customer_name,email,phone,address)
 VALUES
-('Dell Inspiron 15', 1, 65000,
- '{"ram":"16GB","storage":"512GB SSD","color":"Black","warranty":"1 Year"}',
- ARRAY['laptop','business','student']),
 
-('HP Pavilion 14', 1, 72000,
- '{"ram":"16GB","storage":"1TB SSD","color":"Silver","warranty":"2 Years"}',
- ARRAY['laptop','premium','student']),
+('Daksh Srivastava','daksh@gmail.com','9876500001','Mumbai'),
 
-('Samsung Galaxy S25', 2, 79999,
- '{"ram":"12GB","storage":"256GB","color":"Blue","warranty":"1 Year"}',
- ARRAY['smartphone','android','flagship']),
+('Prathamesh More','prathamesh@gmail.com','9876500002','Delhi'),
 
-('iPhone 16', 2, 79900,
- '{"ram":"8GB","storage":"256GB","color":"Black","warranty":"1 Year"}',
- ARRAY['smartphone','ios','premium']),
+('Rohan Mehta','rohan@gmail.com','9876500003','Pune'),
 
-('iPad Air', 3, 59900,
- '{"ram":"8GB","storage":"128GB","color":"Purple","warranty":"1 Year"}',
- ARRAY['tablet','apple','student']),
+('Sumit Shingole','sumit@gmail.com','9876500004','Bangalore'),
 
-('Apple Watch Series 10', 4, 46900,
- '{"ram":"4GB","storage":"64GB","color":"Silver","warranty":"1 Year"}',
- ARRAY['smartwatch','fitness','apple']),
-
-('Sony WH-1000XM5', 5, 29990,
- '{"ram":"2GB","storage":"16GB","color":"Black","warranty":"1 Year"}',
- ARRAY['headphones','wireless','audio']),
-
-('Canon EOS R50', 6, 58999,
- '{"ram":"8GB","storage":"128GB","color":"Black","warranty":"2 Years"}',
- ARRAY['camera','photography','mirrorless']),
-
-('LG UltraGear Monitor', 8, 32999,
- '{"ram":"4GB","storage":"32GB","color":"Black","warranty":"3 Years"}',
- ARRAY['monitor','gaming','display']),
-
-('Logitech G Pro Keyboard', 9, 14999,
- '{"ram":"2GB","storage":"8GB","color":"White","warranty":"2 Years"}',
- ARRAY['keyboard','gaming','mechanical']);
+('Arjun Verma','arjun@gmail.com','9876500005','Hyderabad');
 
 
--- ============================================================
--- 8. INSERT CUSTOMERS DATA
--- ============================================================
 
-INSERT INTO customers (customer_name, email, phone)
+
+-- Products
+
+INSERT INTO products
+(category_id,product_name,sku,price,stock,specifications,tags)
+
 VALUES
-('Daksh Srivastava', 'daksh@gmail.com', '9876543210'),
-('Prathamesh More', 'prathamesh@gmail.com', '9876543211'),
-('Yuvraj Mishra', 'yuvraj@gmail.com', '9876543212'),
-('Sumit Shingole', 'sumit@gmail.com', '9876543213'),
-('Devendra Fadnavis', 'devendra@gmail.com', '9876543214'),
-('Eknath Shinde', 'eknath@gmail.com', '9876543215'),
-('Uday Samant', 'uday@gmail.com', '9876543216'),
-('Pankaja Munde', 'pankaja@gmail.com', '9876543217'),
-('Chandrakant Patil', 'chandrakant@gmail.com', '9876543218'),
-('Ashish Shelar', 'ashish@gmail.com', '9876543219');
 
 
--- ============================================================
--- 9. INSERT ORDERS DATA
--- ============================================================
+(1,
+'Dell Inspiron Laptop',
+'DELL-LAP-001',
+65000,
+20,
 
-INSERT INTO orders (customer_id, order_date, delivery_date, order_timestamp)
+'{
+"RAM":"16GB",
+"storage":"512GB SSD",
+"color":"Black",
+"warranty":"2 Years"
+}',
+
+ARRAY['laptop','student','office']),
+
+
+
+(1,
+'HP Pavilion Laptop',
+'HP-LAP-002',
+72000,
+15,
+
+'{
+"RAM":"16GB",
+"storage":"1TB SSD",
+"color":"Silver",
+"warranty":"1 Year"
+}',
+
+ARRAY['laptop','premium']),
+
+
+
+(2,
+'OnePlus 13',
+'ONE-003',
+55000,
+30,
+
+'{
+"RAM":"12GB",
+"storage":"256GB",
+"color":"Green",
+"warranty":"2 Years"
+}',
+
+ARRAY['mobile','5g','android']),
+
+
+
+(3,
+'Logitech Wireless Mouse',
+'LOG-004',
+2500,
+50,
+
+'{
+"color":"Black",
+"warranty":"1 Year"
+}',
+
+ARRAY['mouse','accessory','wireless']),
+
+
+
+(5,
+'ASUS Gaming Keyboard',
+'ASUS-005',
+7000,
+25,
+
+'{
+"color":"RGB",
+"warranty":"2 Years"
+}',
+
+ARRAY['gaming','keyboard']);
+
+
+
+
+
+-- Orders
+
+INSERT INTO orders
+(customer_id,order_date,delivery_date)
+
 VALUES
-(1, '2026-09-01', '2026-09-04', '2026-09-01 10:30:00'),
-(2, '2026-09-02', '2026-09-06', '2026-09-02 14:15:00'),
-(3, '2026-09-03', '2026-09-07', '2026-09-03 09:45:00'),
-(4, '2026-09-04', '2026-09-08', '2026-09-04 16:20:00'),
-(5, '2026-09-05', '2026-09-09', '2026-09-05 11:10:00'),
-(6, '2026-09-06', '2026-09-10', '2026-09-06 13:40:00'),
-(7, '2026-09-07', '2026-09-11', '2026-09-07 15:25:00'),
-(8, '2026-09-08', '2026-09-12', '2026-09-08 10:05:00'),
-(9, '2026-09-09', '2026-09-13', '2026-09-09 12:50:00'),
-(10, '2026-09-10', '2026-09-14', '2026-09-10 17:30:00');
+
+(1,'2026-09-01 10:30:00','2026-09-04 15:00:00'),
+
+(2,'2026-09-02 12:00:00','2026-09-05 14:00:00'),
+
+(3,'2026-09-03 09:45:00','2026-09-06 16:00:00'),
+
+(4,'2026-09-04 11:20:00','2026-09-08 13:00:00'),
+
+(5,'2026-09-05 18:00:00','2026-09-07 12:00:00');
 
 
--- ============================================================
--- 10. INSERT ORDER ITEMS DATA
--- Composite key: order_id + product_id
--- ============================================================
 
-INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+
+
+-- Order Items
+
+INSERT INTO order_items
+
+(order_id,product_id,quantity,unit_price)
+
 VALUES
-(1, 1, 1, 65000),
-(1, 3, 1, 79999),
-(2, 2, 1, 72000),
-(2, 5, 2, 59900),
-(3, 4, 1, 79900),
-(3, 7, 1, 29990),
-(4, 6, 1, 46900),
-(5, 8, 1, 58999),
-(6, 9, 2, 32999),
-(7, 10, 1, 14999);
+
+(1,1,1,65000),
+
+(1,4,2,2500),
+
+(2,2,1,72000),
+
+(3,3,1,55000),
+
+(4,5,1,7000),
+
+(5,1,1,65000);
 
 
--- ============================================================
--- 11. JSONB: SEARCH PRODUCTS BY RAM
--- ============================================================
 
-SELECT product_name,
-       specifications->>'ram' AS ram
+
+
+-- ==========================================
+-- JSONB OPERATIONS
+-- ==========================================
+
+
+-- Search RAM
+
+SELECT product_name,specifications
+
 FROM products
-WHERE specifications->>'ram' = '16GB';
+
+WHERE specifications @> '{"RAM":"16GB"}';
 
 
--- ============================================================
--- 12. JSONB: SEARCH PRODUCTS BY COLOR
--- ============================================================
 
-SELECT product_name,
-       specifications->>'color' AS color
+-- Search Color
+
+SELECT product_name,specifications
+
 FROM products
-WHERE specifications->>'color' = 'Black';
+
+WHERE specifications @> '{"color":"Black"}';
 
 
--- ============================================================
--- 13. JSONB: SEARCH PRODUCTS BY STORAGE
--- ============================================================
 
-SELECT product_name,
-       specifications->>'storage' AS storage
+-- Search Storage
+
+SELECT product_name,specifications
+
 FROM products
-WHERE specifications->>'storage' = '512GB SSD';
+
+WHERE specifications @> '{"storage":"512GB SSD"}';
 
 
--- ============================================================
--- 14. JSONB: SEARCH PRODUCTS BY WARRANTY
--- ============================================================
 
-SELECT product_name,
-       specifications->>'warranty' AS warranty
+-- Search Warranty
+
+SELECT product_name,specifications
+
 FROM products
-WHERE specifications->>'warranty' = '2 Years';
+
+WHERE specifications @> '{"warranty":"2 Years"}';
 
 
--- ============================================================
--- 15. ARRAY: SEARCH PRODUCTS BY TAG
--- ============================================================
 
-SELECT product_name,
-       tags
+-- Extract JSON Value
+
+SELECT
+
+product_name,
+
+specifications ->> 'RAM' AS RAM
+
+FROM products;
+
+
+
+
+
+-- ==========================================
+-- ARRAY OPERATIONS
+-- ==========================================
+
+
+-- Search Tag
+
+SELECT product_name,tags
+
 FROM products
-WHERE 'gaming' = ANY(tags);
+
+WHERE 'laptop'=ANY(tags);
 
 
--- ============================================================
--- 16. ARRAY: ADD A NEW TAG
--- ============================================================
 
-UPDATE products
-SET tags = array_append(tags, 'featured')
-WHERE product_id = 1;
+-- Multiple Tags
+
+SELECT product_name,tags
+
+FROM products
+
+WHERE tags @> ARRAY['laptop','student'];
 
 
--- ============================================================
--- 17. DATE/TIME: CALCULATE ORDER DURATION
--- ============================================================
 
-SELECT order_id,
-       order_date,
-       delivery_date,
-       delivery_date - order_date AS order_duration
+-- Count Tags
+
+SELECT
+
+product_name,
+
+array_length(tags,1) AS total_tags
+
+FROM products;
+
+
+
+
+
+-- ==========================================
+-- DATE OPERATIONS
+-- ==========================================
+
+
+-- Extract Year Month
+
+SELECT
+
+order_id,
+
+EXTRACT(YEAR FROM order_date) AS year,
+
+EXTRACT(MONTH FROM order_date) AS month
+
 FROM orders;
 
 
--- ============================================================
--- 18. DATE/TIME: EXTRACT YEAR AND MONTH
--- ============================================================
 
-SELECT order_id,
-       order_date,
-       EXTRACT(YEAR FROM order_date) AS order_year,
-       EXTRACT(MONTH FROM order_date) AS order_month
+
+-- Order Duration
+
+SELECT
+
+order_id,
+
+delivery_date-order_date AS duration
+
 FROM orders;
 
 
--- ============================================================
--- 19. DATE/TIME: CALCULATE AGE OF ORDERS
--- ============================================================
 
-SELECT order_id,
-       order_date,
-       AGE(CURRENT_DATE, order_date) AS order_age
+
+-- Order Age
+
+SELECT
+
+order_id,
+
+AGE(CURRENT_DATE,order_date) AS order_age
+
 FROM orders;
 
 
--- ============================================================
--- 20. DATE/TIME: TRUNCATE ORDER TIMESTAMP
--- ============================================================
-
-SELECT order_id,
-       order_timestamp,
-       DATE_TRUNC('day', order_timestamp) AS order_day
-FROM orders;
 
 
--- ============================================================
--- 21. DATE/TIME: FORMAT ORDER TIMESTAMP
--- ============================================================
 
-SELECT order_id,
-       TO_CHAR(order_timestamp, 'DD-MM-YYYY HH24:MI:SS') AS formatted_timestamp
-FROM orders;
+-- ==========================================
+-- JOIN QUERY
+-- ==========================================
 
 
--- ============================================================
--- 22. JOIN: DISPLAY PRODUCT, CATEGORY AND ORDER DETAILS
--- ============================================================
+SELECT
 
-SELECT p.product_name,
-       c.category_name,
-       oi.quantity,
-       oi.unit_price
-FROM order_items oi
+c.customer_name,
+
+o.order_id,
+
+p.product_name,
+
+cat.category_name,
+
+oi.quantity,
+
+oi.unit_price
+
+
+FROM customers c
+
+
+JOIN orders o
+
+ON c.customer_id=o.customer_id
+
+
+JOIN order_items oi
+
+ON o.order_id=oi.order_id
+
+
 JOIN products p
-    ON oi.product_id = p.product_id
-JOIN categories c
-    ON p.category_id = c.category_id;
+
+ON oi.product_id=p.product_id
 
 
--- ============================================================
--- 23. TRANSACTION: BEGIN AND COMMIT
--- Reduces the price of product 1 by 1000
--- ============================================================
+JOIN categories cat
+
+ON p.category_id=cat.category_id;
+
+
+
+
+
+-- ==========================================
+-- GROUP BY QUERY
+-- ==========================================
+
+
+SELECT
+
+cat.category_name,
+
+COUNT(p.product_id) AS total_products
+
+
+FROM categories cat
+
+
+JOIN products p
+
+ON cat.category_id=p.category_id
+
+
+GROUP BY cat.category_name;
+
+
+
+
+
+-- ==========================================
+-- TRANSACTION
+-- ==========================================
+
+
+-- COMMIT
 
 BEGIN;
 
+
+INSERT INTO orders(customer_id,order_date)
+
+VALUES(1,CURRENT_TIMESTAMP);
+
+
 UPDATE products
-SET price = price - 1000
-WHERE product_id = 1;
+
+SET stock=stock-1
+
+WHERE product_id=1;
+
 
 COMMIT;
 
 
--- ============================================================
--- 24. TRANSACTION: BEGIN AND ROLLBACK
--- The price increase is cancelled using ROLLBACK
--- ============================================================
+
+
+-- ROLLBACK
 
 BEGIN;
 
+
 UPDATE products
-SET price = price + 5000
-WHERE product_id = 2;
+
+SET stock=stock-5
+
+WHERE product_id=1;
+
 
 ROLLBACK;
 
 
--- ============================================================
--- 25. TRANSACTION: SAVEPOINT
--- The second price update is rolled back to the savepoint
--- The first update remains committed
--- ============================================================
+
+
+-- SAVEPOINT
 
 BEGIN;
 
-UPDATE products
-SET price = price + 2000
-WHERE product_id = 3;
-
-SAVEPOINT price_change;
 
 UPDATE products
-SET price = price + 3000
-WHERE product_id = 3;
 
-ROLLBACK TO SAVEPOINT price_change;
+SET stock=stock-2
+
+WHERE product_id=1;
+
+
+SAVEPOINT stock_update;
+
+
+UPDATE products
+
+SET stock=stock-5
+
+WHERE product_id=1;
+
+
+ROLLBACK TO SAVEPOINT stock_update;
+
 
 COMMIT;
-
-
--- ============================================================
--- 26. FINAL JOIN: DISPLAY COMPLETE ORDER DETAILS
--- ============================================================
-
-SELECT c.customer_name,
-       o.order_id,
-       p.product_name,
-       cat.category_name,
-       oi.quantity,
-       oi.unit_price,
-       o.order_date,
-       o.delivery_date
-FROM customers c
-JOIN orders o
-    ON c.customer_id = o.customer_id
-JOIN order_items oi
-    ON o.order_id = oi.order_id
-JOIN products p
-    ON oi.product_id = p.product_id
-JOIN categories cat
-    ON p.category_id = cat.category_id
-ORDER BY o.order_id;
