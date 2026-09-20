@@ -1,4 +1,4 @@
-# Ecommerce_Mini_project
+# DBMS_Mini_project
 
 ## ECommerce Database
 ### Actions Performed
